@@ -1,114 +1,113 @@
 ```markdown
-# 🚀 Panel Administrativo de Turismo - Flask Edition
+# 🚀 Panel Administrativo de Turismo - Docker Edition
 
 ## 1. Requisitos del Sistema
 ### 🛠️ Tecnologías necesarias
-- Python 3.8+
-- Flask 2.3+
-- PostgreSQL (opcional para producción)
-- Node.js (solo para assets estáticos)
+- Docker 20.10+
+- Docker Compose 2.0+
+- (Opcional) Make para comandos simplificados
 
-## 2. Instalación
-### 🐍 Entorno virtual (recomendado)
+## 2. Instalación con Docker (Recomendado)
+### 🐳 Pasos iniciales
 ```bash
-# 1. Crear entorno virtual
-python -m venv venv
+# 1. Clonar el repositorio
+git clone https://github.com/tu-repositorio/panel-turismo.git
+cd panel-turismo
 
-# 2. Activar entorno
-# Linux/Mac:
-source venv/bin/activate
-# Windows:
-.\venv\Scripts\activate
+# 2. Construir y ejecutar los contenedores
+docker-compose up --build
 
-# 3. Instalar dependencias
-pip install -r requirements.txt
-```
-
-### 🚀 Ejecución
-```bash
-# Modo desarrollo (con recarga automática)
-flask run
-
-# Acceder a:
+# 3. Acceder a la aplicación:
 http://localhost:5000
 ```
 
-## 3. Configuración
-### 🔧 Variables de entorno (.flaskenv)
+## 3. Configuración del Entorno
+### 🔧 Variables de entorno (.env)
+Crea un archivo `.env` en la raíz del proyecto con:
 ```ini
 FLASK_APP=app.py
 FLASK_ENV=development
 SECRET_KEY=tusuperclavesecreta
-DATABASE_URL=sqlite:///local.db  # Para desarrollo
-UPLOAD_FOLDER=static/uploads
+DATABASE_URL=postgresql://postgres:example@db:5432/blogdb
+UPLOAD_FOLDER=/app/static/uploads
 ```
 
-## 4. Estructura del Proyecto
-```
-panel-turismo/
-├── app.py                # Aplicación principal
-├── requirements.txt      # Dependencias Python
-├── .flaskenv             # Configuración Flask
-├── static/               # Archivos estáticos
-│   ├── css/              # Hojas de estilo
-│   └── js/               # JavaScript
-└── templates/            # Plantillas HTML
-    ├── base.html         # Layout principal
-    ├── posts/            # Vistas de publicaciones
-    └── categories/       # Vistas de categorías
-```
-
-## 5. Características Principales
-- ✅ CRUD completo de publicaciones
-- ✅ Gestión de categorías
-- ✅ Subida múltiple de imágenes
-- ✅ Integración con Google Maps
-- ✅ Diseño responsive con Bootstrap 5
-- ✅ Sistema de mensajes flash
-- ✅ Validaciones de formulario
-
-## 6. Comandos Útiles
-### 🛠️ Desarrollo
+## 4. Comandos Útiles
+### 🐋 Docker Compose
 ```bash
-# Instalar dependencias
-pip install -r requirements.txt
+# Iniciar servicios (modo desarrollo)
+docker-compose up
 
-# Ejecutar tests (si existen)
-python -m pytest
+# Reconstruir imágenes y reiniciar
+docker-compose up --build
 
-# Iniciar servidor
-flask run
+# Detener servicios
+docker-compose down
+
+# Eliminar todo (contenedores + volúmenes)
+docker-compose down -v
+
+# Ver logs en tiempo real
+docker-compose logs -f web
+
+# Ejecutar comandos dentro del contenedor web
+docker-compose exec web flask shell
 ```
 
-### 🐳 Docker (opcional)
+### 🛠️ Comandos Make (opcional)
+Si tienes Make instalado, puedes usar estos alias:
+
 ```bash
-# Construir imagen
-docker build -t panel-turismo .
-
-# Ejecutar contenedor
-docker run -p 5000:5000 panel-turismo
+make up      # Iniciar servicios
+make down    # Detener servicios
+make rebuild # Reconstruir y reiniciar
+make logs    # Ver logs
+make shell   # Acceder a shell interactiva
 ```
 
-## 7. Despliegue
-### 🚀 Opciones recomendadas
-1. **Render.com** (para PostgreSQL gratis)
-2. **Railway.app** (fácil despliegue)
-3. **VPS tradicional** (Nginx + Gunicorn)
-
-### Configuración producción
-```python
-# En app.py
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+## 5. Estructura de Servicios
+```
+Servicio    Puerto      Descripción
+-------     ------      -----------
+web         5000        Aplicación Flask (desarrollo)
+db          5432        PostgreSQL database
 ```
 
-## 8. Licencia
+## 6. Características del Entorno Docker
+- ✅ Hot-reloading para desarrollo
+- ✅ Base de datos PostgreSQL persistente
+- ✅ Volumen para uploads de imágenes
+- ✅ Health checks automáticos
+- ✅ Variables de entorno configurables
+
+## 7. Solución de Problemas Comunes
+### 🔍 Problemas de conexión a la base de datos
+```bash
+# Verificar estado de la DB
+docker-compose exec db pg_isready
+
+# Reintentar conexión
+docker-compose restart web
+```
+
+### 🐛 Debugging
+```bash
+# Acceder a los logs
+docker-compose logs -f web
+
+# Inspeccionar la DB
+docker-compose exec db psql -U postgres -d blogdb
+```
+
+## 8. Despliegue en Producción
+Para producción, considera:
+1. Usar `gunicorn` en lugar de `flask run`
+2. Configurar `FLASK_ENV=production`
+3. Implementar migraciones de base de datos
+4. Configurar un proxy inverso (Nginx)
+
+📌 **Nota**: Esta configuración es solo para desarrollo. No usar en producción sin las debidas modificaciones de seguridad.
+
+## 9. Licencia
 📄 MIT License - Copyright (c) 2023 [Tu Nombre]
-
----
-
-💡 **Nota**: Para producción, configurar adecuadamente:
-- Secret Key
-- Base de datos PostgreSQL
-- Configuración de almacenamiento para imágenes
 ```

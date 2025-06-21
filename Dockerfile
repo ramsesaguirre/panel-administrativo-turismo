@@ -1,35 +1,28 @@
-# Etapa de construcción
-FROM node:18-alpine as build-stage
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-# Etapa de producción
+# Dockerfile para desarrollo
 FROM python:3.9-slim
+
 WORKDIR /app
 
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    nginx \
+    build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Configurar Nginx
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY --from=build-stage /app/dist /usr/share/nginx/html
-
-# Instalar dependencias Python
+# Copiar requirements primero para cachear la instalación
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar aplicación
-COPY app.py .
-COPY templates /app/templates
-COPY static /app/static
+# Copiar el resto de la aplicación
+COPY . .
 
-# Exponer puertos
-EXPOSE 80 5000
+# Variables de entorno para desarrollo
+ENV FLASK_APP=app.py
+ENV FLASK_ENV=development
+ENV FLASK_DEBUG=1
 
-# Comando de inicio
-CMD service nginx start && python app.py
+# Puerto de la aplicación
+EXPOSE 5000
+
+# Comando para iniciar la aplicación
+CMD ["flask", "run", "--host=0.0.0.0"]

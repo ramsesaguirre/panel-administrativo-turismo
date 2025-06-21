@@ -6,24 +6,22 @@
         <div class="col-lg-8">
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Editar Publicación</h4>
+                    <h4 class="mb-0">Nueva Publicación</h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="/posts/update/{{ post.id }}" enctype="multipart/form-data" id="postForm">
+                    <form method="POST" action="/posts/store" enctype="multipart/form-data" id="postForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         
                         <div class="mb-4">
                             <h5 class="border-bottom pb-2">Información Básica</h5>
                             <div class="mb-3">
                                 <label for="title" class="form-label">Título *</label>
-                                <input type="text" class="form-control" id="title" name="title" 
-                                       value="{{ post.title | e }}" required minlength="5" maxlength="100">
+                                <input type="text" class="form-control" id="title" name="title" required minlength="5" maxlength="100">
                             </div>
                             
                             <div class="mb-3">
                                 <label for="description" class="form-label">Descripción *</label>
-                                <textarea class="form-control" id="description" name="description" 
-                                          rows="5" required>{{ post.description | e }}</textarea>
+                                <textarea class="form-control" id="description" name="description" rows="5" required></textarea>
                             </div>
                         </div>
 
@@ -32,7 +30,7 @@
                             <select class="form-select" id="category_id" name="category_id">
                                 <option value="">Seleccione una categoría</option>
                                 {% for category in categories %}
-                                <option value="{{ category.id }}">{{ category.name }}</option>Add commentMore actions
+                                <option value="{{ category.id }}">{{ category.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -46,6 +44,7 @@
                             <label for="images" class="form-label">Imágenes</label>
                             <input type="file" class="form-control" id="images" name="images" multiple accept="image/*">
                             <div class="form-text">Máximo 5 imágenes (JPEG, PNG)</div>
+                            <div id="imagePreview" class="mt-2 d-flex flex-wrap gap-2"></div>
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -64,14 +63,164 @@
 </div>
 
 <script>
-document.getElementById('postForm').addEventListener('submit', function(e) {
-    const title = document.getElementById('title').value.trim();
-    if (title.length < 5 || title.length > 100) {
-        e.preventDefault();
-        alert('El título debe tener entre 5 y 100 caracteres');
-        return false;
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('postForm');
+    const titleInput = document.getElementById('title');
+    const descriptionInput = document.getElementById('description');
+    const imagesInput = document.getElementById('images');
+    const imagePreview = document.getElementById('imagePreview');
+    const maxImages = 5;
+
+    // Validación del formulario
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Validar título
+        if (titleInput.value.trim().length < 5 || titleInput.value.trim().length > 100) {
+            showError('El título debe tener entre 5 y 100 caracteres');
+            isValid = false;
+        }
+        
+        // Validar descripción
+        if (descriptionInput.value.trim().length < 10) {
+            showError('La descripción debe tener al menos 10 caracteres');
+            isValid = false;
+        }
+        
+        // Validar imágenes
+        if (imagesInput.files.length > maxImages) {
+            showError(`No puedes subir más de ${maxImages} imágenes`);
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+
+    // Mostrar vista previa de imágenes
+    imagesInput.addEventListener('change', function() {
+        imagePreview.innerHTML = '';
+        
+        if (this.files.length > maxImages) {
+            showError(`Solo puedes seleccionar hasta ${maxImages} imágenes`);
+            this.value = '';
+            return;
+        }
+        
+        Array.from(this.files).forEach(file => {
+            if (!file.type.match('image.*')) {
+                showError('Solo se permiten archivos de imagen (JPEG, PNG)');
+                this.value = '';
+                imagePreview.innerHTML = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'position-relative';
+                imgContainer.style.width = '100px';
+                imgContainer.style.height = '100px';
+                
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'img-thumbnail h-100 w-100 object-fit-cover';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0';
+                removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                removeBtn.onclick = function() {
+                    imgContainer.remove();
+                    updateFileInput();
+                };
+                
+                imgContainer.appendChild(img);
+                imgContainer.appendChild(removeBtn);
+                imagePreview.appendChild(imgContainer);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // Actualizar el input de archivos después de eliminar una imagen
+    function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        const previewImages = imagePreview.querySelectorAll('img');
+        
+        Array.from(imagesInput.files).forEach(file => {
+            let fileStillExists = false;
+            previewImages.forEach(img => {
+                if (img.src.includes(file.name)) {
+                    fileStillExists = true;
+                }
+            });
+            
+            if (fileStillExists) {
+                dataTransfer.items.add(file);
+            }
+        });
+        
+        imagesInput.files = dataTransfer.files;
     }
-    return true;
+
+    // Mostrar mensaje de error con SweetAlert2
+    function showError(message) {
+        Swal.fire({
+            title: 'Error',
+            text: message,
+            icon: 'error',
+            confirmButtonText: 'Entendido'
+        });
+    }
+
+    // Validar URL de Google Maps
+    document.getElementById('map_url').addEventListener('blur', function() {
+        if (this.value && !this.value.includes('google.com/maps')) {
+            showError('Por favor ingresa una URL válida de Google Maps');
+            this.focus();
+        }
+    });
 });
 </script>
+
+<style>
+.image-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.image-preview-item {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    cursor: pointer;
+}
+</style>
 {% endblock %}

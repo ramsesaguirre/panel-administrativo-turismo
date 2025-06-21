@@ -10,15 +10,22 @@
                 </div>
 
                 <div class="card-body">
-                    <form method="POST" action="/posts/update/{{ post.id }}" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="title" class="form-label">Título</label>
-                            <input type="text" class="form-control" id="title" name="title" value="{{ post.title }}" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Descripción</label>
-                            <textarea class="form-control" id="description" name="description" rows="5" required>{{ post.description }}</textarea>
+                    <form method="POST" action="/posts/update/{{ post.id }}" enctype="multipart/form-data" id="postForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Información Básica</h5>
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Título *</label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       value="{{ post.title | e }}" required minlength="5" maxlength="100">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Descripción *</label>
+                                <textarea class="form-control" id="description" name="description" 
+                                          rows="5" required>{{ post.description | e }}</textarea>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -35,12 +42,13 @@
 
                         <div class="mb-3">
                             <label for="map_url" class="form-label">URL de Mapa (Google Maps)</label>
-                            <input type="url" class="form-control" id="map_url" name="map_url" value="{{ post.map_url or '' }}">
+                            <input type="url" class="form-control" id="map_url" name="map_url" 
+                                   value="{{ post.map_url or '' }}" placeholder="https://www.google.com/maps/place/...">
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Imágenes actuales</label>
-                            <div class="row g-2">
+                            <div class="row g-2" id="currentImages">
                                 {% for image in post.images %}
                                 <div class="col-auto">
                                     <div class="position-relative">
@@ -58,6 +66,8 @@
                         <div class="mb-3">
                             <label for="new_images" class="form-label">Agregar más imágenes</label>
                             <input type="file" class="form-control" id="new_images" name="new_images" multiple accept="image/*">
+                            <div class="form-text">Máximo 5 imágenes adicionales (JPEG, PNG)</div>
+                            <div id="newImagesPreview" class="mt-2 d-flex flex-wrap gap-2"></div>
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -76,18 +86,188 @@
 </div>
 
 <script>
-function removeImage(button, imageUrl) {
-    if (!confirm('¿Eliminar esta imagen?')) return;
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('postForm');
+    const titleInput = document.getElementById('title');
+    const descriptionInput = document.getElementById('description');
+    const newImagesInput = document.getElementById('new_images');
+    const newImagesPreview = document.getElementById('newImagesPreview');
+    const maxImages = 5;
+    let removedImages = [];
 
-    const container = button.closest('.col-auto');Add commentMore actions
-    container.remove();
-    const form = document.querySelector('form');
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'removed_images';
-    input.value = imageUrl;
-    form.appendChild(input);
+    // Validación del formulario
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Validar título
+        if (titleInput.value.trim().length < 5 || titleInput.value.trim().length > 100) {
+            showError('El título debe tener entre 5 y 100 caracteres');
+            isValid = false;
+        }
+        
+        // Validar descripción
+        if (descriptionInput.value.trim().length < 10) {
+            showError('La descripción debe tener al menos 10 caracteres');
+            isValid = false;
+        }
+        
+        // Validar imágenes (existentes + nuevas)
+        const currentImagesCount = document.querySelectorAll('#currentImages .col-auto').length;
+        const newImagesCount = newImagesInput.files.length;
+        
+        if (currentImagesCount + newImagesCount > maxImages) {
+            showError(`No puedes tener más de ${maxImages} imágenes en total`);
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+
+    // Mostrar vista previa de nuevas imágenes
+    newImagesInput.addEventListener('change', function() {
+        newImagesPreview.innerHTML = '';
+        
+        const currentImagesCount = document.querySelectorAll('#currentImages .col-auto').length;
+        
+        if (currentImagesCount + this.files.length > maxImages) {
+            showError(`Solo puedes agregar hasta ${maxImages - currentImagesCount} imágenes adicionales`);
+            this.value = '';
+            return;
+        }
+        
+        Array.from(this.files).forEach(file => {
+            if (!file.type.match('image.*')) {
+                showError('Solo se permiten archivos de imagen (JPEG, PNG)');
+                this.value = '';
+                newImagesPreview.innerHTML = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'position-relative';
+                imgContainer.style.width = '100px';
+                imgContainer.style.height = '100px';
+                
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'img-thumbnail h-100 w-100 object-fit-cover';
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0';
+                removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                removeBtn.onclick = function() {
+                    imgContainer.remove();
+                    updateFileInput();
+                };
+                
+                imgContainer.appendChild(img);
+                imgContainer.appendChild(removeBtn);
+                newImagesPreview.appendChild(imgContainer);
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    // Actualizar el input de archivos después de eliminar una imagen nueva
+    function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        const previewImages = newImagesPreview.querySelectorAll('img');
+        
+        Array.from(newImagesInput.files).forEach(file => {
+            let fileStillExists = false;
+            previewImages.forEach(img => {
+                if (img.src.includes(file.name)) {
+                    fileStillExists = true;
+                }
+            });
+            
+            if (fileStillExists) {
+                dataTransfer.items.add(file);
+            }
+        });
+        
+        newImagesInput.files = dataTransfer.files;
+    }
+
+    // Eliminar imagen existente
+    function removeImage(button, imageUrl) {
+        if (!confirm('¿Eliminar esta imagen?')) return;
+
+        const container = button.closest('.col-auto');
+        container.remove();
+        
+        // Agregar al array de imágenes eliminadas
+        removedImages.push(imageUrl);
+        
+        // Crear input hidden para enviar al servidor
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'removed_images';
+        input.value = imageUrl;
+        form.appendChild(input);
+    }
+
+    // Mostrar mensaje de error con SweetAlert2
+    function showError(message) {
+        Swal.fire({
+            title: 'Error',
+            text: message,
+            icon: 'error',
+            confirmButtonText: 'Entendido'
+        });
+    }
+
+    // Validar URL de Google Maps
+    document.getElementById('map_url').addEventListener('blur', function() {
+        if (this.value && !this.value.includes('google.com/maps')) {
+            showError('Por favor ingresa una URL válida de Google Maps');
+            this.focus();
+        }
+    });
+});
+</script>
+
+<style>
+.image-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
 }
 
-</script>
+.image-preview-item {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    cursor: pointer;
+}
+</style>
 {% endblock %}

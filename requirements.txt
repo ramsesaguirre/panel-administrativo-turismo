@@ -1,5 +1,9 @@
-# Python dependencies
-python-dotenv==1.0.0
-psycopg2-binary==2.9.7
-SQLAlchemy==2.0.23
-alembic==1.12.0
+# Solo módulos estándar de Python que necesitamos
+# (Comentamos las dependencias externas ya que no podemos instalarlas)
+# python-dotenv==1.0.0
+# psycopg2-binary==2.9.7
+# SQLAlchemy==2.0.23
+# alembic==1.12.0
+# Werkzeug==3.0.1
+# bleach==6.0.0
+# uuid está incluido en la biblioteca estándar de Python 3

@@ -1,55 +1,48 @@
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 from .models import db_service, Post, Category
 from datetime import datetime
+from werkzeug.security import safe_join
+import re
+import uuid
 
-class CategoryRepository:
+class PostRepository:
     @staticmethod
-    def create_category(name):
-        session = db_service.get_session()
-        try:
-            category = Category(name=name)
-            session.add(category)
-            session.commit()
-            return category.to_dict()
-        except SQLAlchemyError as e:
-            session.rollback()
-            raise e
-        finally:
-            session.close()
+    def sanitize_input(input_str):
+        """Elimina caracteres potencialmente peligrosos"""
+        if not input_str:
+            return input_str
+        return re.sub(r'[^\w\s\-.,áéíóúÁÉÍÓÚñÑ]', '', str(input_str))
 
     @staticmethod
-    def get_all_categories():
+    def create_post(title, description, category_id=None, map_url=None, images=None):
         session = db_service.get_session()
         try:
-            categories = session.query(Category).order_by(Category.name).all()
-            return [category.to_dict() for category in categories]
-        except SQLAlchemyError as e:
-            raise e
-        finally:
-            session.close()
-
-    @staticmethod
-    def get_category_by_id(category_id):
-        session = db_service.get_session()
-        try:
-            category = session.query(Category).filter_by(id=category_id).first()
-            return category.to_dict() if category else None
-        except SQLAlchemyError as e:
-            raise e
-        finally:
-            session.close()
-
-    @staticmethod
-    def update_category(category_id, name):
-        session = db_service.get_session()
-        try:
-            category = session.query(Category).filter_by(id=category_id).first()
-            if not category:
-                return None
+            if not title or not description:
+                raise ValueError("Title and description are required")
                 
-            category.name = name
+            title = PostRepository.sanitize_input(title)
+            description = PostRepository.sanitize_input(description)
+            
+            if category_id is not None:
+                try:
+                    category_id = int(category_id)
+                except ValueError:
+                    raise ValueError("Invalid category ID")
+                    
+            if map_url and not map_url.startswith(('http://', 'https://')):
+                raise ValueError("Invalid URL format")
+
+            post = Post(
+                title=title,
+                description=description,
+                category_id=category_id,
+                map_url=map_url,
+                images=images or []
+            )
+            session.add(post)
             session.commit()
-            return category.to_dict()
+            return post.to_dict()
         except SQLAlchemyError as e:
             session.rollback()
             raise e
@@ -57,20 +50,38 @@ class CategoryRepository:
             session.close()
 
     @staticmethod
-    def delete_category(category_id):
+    def get_all_posts():
         session = db_service.get_session()
         try:
-            category = session.query(Category).filter_by(id=category_id).first()
-            if not category:
-                return False
-                
-            session.delete(category)
-            session.commit()
-            return True
+            posts = session.execute(
+                text("""
+                SELECT p.*, c.name as category_name 
+                FROM posts p
+                LEFT JOIN categories c ON p.category_id = c.id
+                ORDER BY p.created_at DESC
+                """)
+            ).mappings().all()
+            return [dict(post) for post in posts]
         except SQLAlchemyError as e:
-            session.rollback()
             raise e
         finally:
             session.close()
 
-# ... (PostRepository permanece igual pero actualizado para manejar category_id)
+    @staticmethod
+    def get_post_by_id(post_id):
+        session = db_service.get_session()
+        try:
+            post = session.execute(
+                text("""
+                SELECT p.*, c.name as category_name 
+                FROM posts p
+                LEFT JOIN categories c ON p.category_id = c.id
+                WHERE p.id = :post_id
+                """),
+                {'post_id': post_id}
+            ).mappings().first()
+            return dict(post) if post else None
+        except SQLAlchemyError as e:
+            raise e
+        finally:
+            session.close()

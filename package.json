@@ -1,0 +1,22 @@
+{
+  "name": "blog-system",
+  "version": "1.0.0",
+  "description": "Sistema de blog con autenticación y posts",
+  "scripts": {
+    "install-deps": "npm install",
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "sweetalert2": "^11.10.8",
+    "leaflet": "^1.9.4",
+    "moment": "^2.29.4",
+    "bootstrap": "^5.3.2",
+    "vite": "^4.4.9",
+    "@popperjs/core": "^2.11.8"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.4"
+  }
+}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h2 class="mb-4">Publicaciones Recientes</h2>
+    
+    <div id="postsContainer">
+        <!-- Loader inicial -->
+        <div id="postsLoader" class="text-center my-5">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                <span class="visually-hidden">Cargando publicaciones...</span>
+            </div>
+            <p class="mt-2 text-muted">Cargando contenido...</p>
+        </div>
+        
+        <!-- Posts cargados dinámicamente aquí -->
+        <div id="postsContent" style="display: none;">
+            {% for post in posts %}
+            <div class="post card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">{{ post.title }}</h3>
+                    <p class="card-subtitle mb-2 text-muted">
+                        <small>Publicado el: {{ post.date }}</small>
+                    </p>
+                    <p class="card-text">{{ post.description }}</p>
+                    
+                    {% if post.map_url %}
+                    <div class="map-container mb-3">
+                        <iframe 
+                            width="100%" 
+                            height="300" 
+                            frameborder="0" 
+                            scrolling="no" 
+                            marginheight="0" 
+                            marginwidth="0" 
+                            src="{{ post.map_url | replace('view', 'embed') }}"
+                            class="rounded">
+                        </iframe>
+                    </div>
+                    {% endif %}
+                    
+                    {% if post.images %}
+                    <div class="gallery row g-2">
+                        {% for image in post.images %}
+                        <div class="col-md-3 col-6">
+                            <img src="{{ image }}" alt="Imagen de la publicación" class="img-thumbnail">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-info">No hay publicaciones aún.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Simular carga de posts (en producción sería una llamada AJAX)
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const loader = document.getElementById('postsLoader');
+                const content = document.getElementById('postsContent');
+                
+                if (loader) loader.style.display = 'none';
+                if (content) content.style.display = 'block';
+                
+                // Agregar animación de aparición
+                content.style.animation = 'fadeIn 0.5s ease-in-out';
+            }, 1500); // 1.5 segundos de simulación
+        });
+    </script>
+
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .post {
+            transition: transform 0.3s ease;
+        }
+        
+        .post:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        }
+        
+        .spinner-border {
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function confirmDelete(postId) {
+    Swal.fire({
+        title: '¿Confirmar eliminación?',
+        text: "¡Esta acción no se puede deshacer!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+            popup: 'animated fadeIn faster'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Mostrar loader durante la eliminación
+            Swal.fire({
+                title: 'Eliminando...',
+                html: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading()
+                }
+            });
+            
+            // Enviar petición de eliminación
+            fetch(`/posts/delete/${postId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',  // Asegurar protección CSRF
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    // Mostrar confirmación y recargar
+                    Swal.fire({
+                        title: '¡Eliminado!',
+                        text: 'La publicación ha sido eliminada',
+                        icon: 'success',
+                        showConfirmButton: false,
+                        timer: 1500,
+                        willClose: () => {
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    throw new Error('Error en la respuesta');
+                }
+            }).catch(error => {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'No se pudo eliminar la publicación',
+                    icon: 'error',
+                    confirmButtonText: 'Entendido'
+                });
+                console.error('Error:', error);
+            });
+        }
+    });
+}
+</script>
+
+<style>
+.swal2-popup {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.swal2-confirm {
+    transition: all 0.2s;
+}
+
+.swal2-confirm:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+</style>
+{% endblock %}

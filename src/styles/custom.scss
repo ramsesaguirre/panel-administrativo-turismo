@@ -1,0 +1,41 @@
+/* Variables personalizadas */
+$primary: #3498db;
+$secondary: #2980b9;
+$navbar-dark-color: rgba(white, 0.85);
+$navbar-dark-hover-color: white;
+
+/* Importación de componentes Bootstrap */
+@import "~bootstrap/scss/buttons";
+@import "~bootstrap/scss/nav";
+@import "~bootstrap/scss/navbar";
+@import "~bootstrap/scss/dropdown";
+@import "~bootstrap/scss/forms";
+@import "~bootstrap/scss/card";
+@import "~bootstrap/scss/alert";
+@import "~bootstrap/scss/modal";
+
+/* Estilos personalizados */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-link {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+    
+    &:hover, &.active {
+        background-color: rgba(white, 0.1);
+    }
+}
+
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+}
+
+footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid $gray-300;
+}

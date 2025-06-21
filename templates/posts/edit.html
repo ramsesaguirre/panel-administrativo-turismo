@@ -9,56 +9,105 @@
                     <h4 class="mb-0">Editar Publicación</h4>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="/posts/update/{{ post.id }}" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label for="title" class="form-label">Título</label>
-                            <input type="text" class="form-control" id="title" name="title" value="{{ post.title }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Descripción</label>
-                            <textarea class="form-control" id="description" name="description" rows="5" required>{{ post.description }}</textarea>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="category_id" class="form-label">Categoría</label>
-                            <select class="form-select" id="category_id" name="category_id">
-                                <option value="">Seleccione una categoría</option>
-                                {% for category in categories %}
-                                <option value="{{ category.id }}" {% if category.id == post.category_id %}selected{% endif %}>
-                                    {{ category.name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="map_url" class="form-label">URL de Mapa (Google Maps)</label>
-                            <input type="url" class="form-control" id="map_url" name="map_url" value="{{ post.map_url or '' }}">
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Imágenes actuales</label>
-                            <div class="row g-2">
-                                {% for image in post.images %}
-                                <div class="col-auto">
-                                    <div class="position-relative">
-                                        <img src="{{ image }}" class="img-thumbnail" style="height: 80px;">
-                                        <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
-                                                onclick="removeImage(this, '{{ image }}')">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
+                    <form method="POST" action="/posts/update/{{ post.id }}" enctype="multipart/form-data" id="postForm">
+                        <!-- Sección Información Básica -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Información Básica</h5>
+                            <div class="mb-3">
+                                <label for="title" class="form-label">Título *</label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       value="{{ post.title }}" required minlength="5" maxlength="30"
+                                       oninput="validateTitle(this)">
+                                <div class="invalid-feedback">
+                                    El título debe tener entre 5 y 30 caracteres
                                 </div>
-                                {% endfor %}
+                                <div class="form-text">
+                                    <span id="titleCounter">{{ post.title|length }}</span>/30 caracteres
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="description" class="form-label">Descripción *</label>
+                                <textarea class="form-control" id="description" name="description" rows="5" required>{{ post.description }}</textarea>
                             </div>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="new_images" class="form-label">Agregar más imágenes</label>
-                            <input type="file" class="form-control" id="new_images" name="new_images" multiple accept="image/*">
+
+                        <!-- Sección Categorías -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Categorías</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Seleccione categorías *</label>
+                                <div class="row">
+                                    {% for category in categories %}
+                                    <div class="col-md-4 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   id="category_{{ category.id }}" 
+                                                   name="categories" value="{{ category.id }}"
+                                                   {% if category.id in post.category_ids %}checked{% endif %}>
+                                            <label class="form-check-label" for="category_{{ category.id }}">
+                                                {{ category.name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
                         </div>
-                        
+
+                        <!-- Sección Información de Contacto -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Información de Contacto</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="address" class="form-label">Dirección *</label>
+                                    <input type="text" class="form-control" id="address" name="address" value="{{ post.address }}" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="phone" class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ post.phone }}">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="cost" class="form-label">Costo (opcional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="cost" name="cost" value="{{ post.cost }}" min="0" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección Multimedia -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2">Multimedia</h5>
+                            <div class="mb-3">
+                                <label for="map_url" class="form-label">URL de Mapa (Google Maps)</label>
+                                <input type="url" class="form-control" id="map_url" name="map_url" value="{{ post.map_url or '' }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Imágenes actuales</label>
+                                <div class="row g-2">
+                                    {% for image in post.images %}
+                                    <div class="col-auto">
+                                        <div class="position-relative">
+                                            <img src="{{ image }}" class="img-thumbnail" style="height: 80px;">
+                                            <button type="button" class="btn btn-danger btn-sm position-absolute top-0 end-0" 
+                                                    onclick="removeImage(this, '{{ image }}')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="new_images" class="form-label">Agregar más imágenes</label>
+                                <input type="file" class="form-control" id="new_images" name="new_images" multiple accept="image/*">
+                            </div>
+                        </div>
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                             <a href="/" class="btn btn-secondary me-md-2">
                                 <i class="bi bi-arrow-left"></i> Cancelar
@@ -75,13 +124,26 @@
 </div>
 
 <script>
+function validateTitle(input) {
+    const titleCounter = document.getElementById('titleCounter');
+    const value = input.value;
+    titleCounter.textContent = value.length;
+    
+    if (value.length < 5 || value.length > 30) {
+        input.classList.add('is-invalid');
+        return false;
+    } else {
+        input.classList.remove('is-invalid');
+        return true;
+    }
+}
+
 function removeImage(button, imageUrl) {
     if (!confirm('¿Eliminar esta imagen?')) return;
     
     const container = button.closest('.col-auto');
     container.remove();
     
-    // Agregar input hidden para indicar qué imagen eliminar
     const form = document.querySelector('form');
     const input = document.createElement('input');
     input.type = 'hidden';
@@ -89,5 +151,13 @@ function removeImage(button, imageUrl) {
     input.value = imageUrl;
     form.appendChild(input);
 }
+
+document.getElementById('postForm').addEventListener('submit', function(e) {
+    const titleInput = document.getElementById('title');
+    if (!validateTitle(titleInput)) {
+        e.preventDefault();
+        titleInput.focus();
+    }
+});
 </script>
 {% endblock %}

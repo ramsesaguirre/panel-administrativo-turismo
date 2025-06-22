@@ -6,15 +6,15 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - .:/app
       - ./static/uploads:/app/static/uploads
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=development
-      - FLASK_DEBUG=1
       - DATABASE_URL=postgresql://postgres:example@db:5432/blogdb
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    command: flask run --host=0.0.0.0 --port=5000
     restart: unless-stopped
 
   db:

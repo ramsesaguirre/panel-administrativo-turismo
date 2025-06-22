@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- Todos los estilos y enlaces anteriores se mantienen -->
+</head>
+<body class="bg-light">
+    <!-- Loader -->
+    <div class="loader-container" id="loader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Contenido de autenticación -->
+    <div id="authContainer" class="auth-container bg-white">
+        <!-- Vistas de login/register -->
+        <div id="loginView">
+            <h2 class="text-center mb-4">Iniciar Sesión</h2>
+            <form id="loginForm">
+                <!-- Campos del formulario -->
+            </form>
+        </div>
+    </div>
+
+    <!-- Sistema de publicaciones -->
+    <div id="postsSystem" style="display: none;">
+        <!-- Contenido del sistema -->
+    </div>
+
+    <script>
+        // 0. CONSTANTES Y VARIABLES GLOBALES
+        const SESSION_KEY = 'blogCurrentUser';
+        const USERS_KEY = 'blogUsers';
+        let users = JSON.parse(localStorage.getItem(USERS_KEY)) || [];
+
+        // 1. FUNCIONES CORE
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function showLoader() {
+            const loader = document.getElementById('loader');
+            if (loader) loader.style.display = 'flex';
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('loader');
+            if (loader) loader.style.display = 'none';
+        }
+
+        // 2. FUNCIONES DE VISTAS
+        function showLoginView() {
+            const loginView = document.getElementById('loginView');
+            const registerView = document.getElementById('registerView');
+            if (loginView) loginView.style.display = 'block';
+            if (registerView) registerView.style.display = 'none';
+        }
+
+        function redirectToPostsSystem() {
+            const authContainer = document.getElementById('authContainer');
+            const postsSystem = document.getElementById('postsSystem');
+            if (authContainer) authContainer.style.display = 'none';
+            if (postsSystem) postsSystem.style.display = 'block';
+            initializePostsSystem();
+        }
+
+        function initializePostsSystem() {
+            console.log('Sistema de publicaciones inicializado');
+            // Tu lógica para cargar publicaciones
+        }
+
+        // 3. MANEJADORES DE FORMULARIOS
+        function setupLoginForm() {
+            const loginForm = document.getElementById('loginForm');
+            if (!loginForm) return;
+
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail')?.value;
+                const password = document.getElementById('loginPassword')?.value;
+
+                if (!email || !password) {
+                    Swal.fire('Error', 'Complete todos los campos', 'error');
+                    return;
+                }
+
+                showLoader();
+                try {
+                    const hashedPassword = await hashPassword(password);
+                    const user = users.find(u => u.email === email && u.password === hashedPassword);
+
+                    if (user) {
+                        localStorage.setItem(SESSION_KEY, JSON.stringify({
+                            email: user.email,
+                            loggedInAt: new Date().toISOString()
+                        }));
+                        setTimeout(() => {
+                            hideLoader();
+                            redirectToPostsSystem();
+                        }, 1500);
+                    } else {
+                        hideLoader();
+                        Swal.fire('Error', 'Credenciales incorrectas', 'error');
+                    }
+                } catch (error) {
+                    hideLoader();
+                    console.error('Error:', error);
+                    Swal.fire('Error', 'Error al iniciar sesión', 'error');
+                }
+            });
+        }
+
+        // 4. INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentUser = localStorage.getItem(SESSION_KEY);
+            if (currentUser) {
+                showLoader();
+                setTimeout(() => {
+                    hideLoader();
+                    redirectToPostsSystem();
+                }, 1000);
+            } else {
+                showLoginView();
+                setupLoginForm();
+            }
+        });
+    </script>
+</body>
+</html>

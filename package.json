@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "Sistema de blog con autenticación y posts",
   "scripts": {
-    "install-deps": "npm install",
-    "start": "vite",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },

@@ -25,8 +25,8 @@
                         {% for category in categories %}
                         <tr>
                             <td>{{ category.name }}</td>
-                            <td>{{ category.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
-                            <td>{{ category.updated_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>{{ category.created_at if category.created_at.strftime('%d/%m/%Y %H:%M') else '' }}</td>
+                            <td>{{ category.updated_at if category.updated_at.strftime('%d/%m/%Y %H:%M') else '' }}</td>
                             <td>
                                 <a href="/categories/edit/{{ category.id }}" class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-pencil"></i>

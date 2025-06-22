@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
+from flask_wtf.csrf import CSRFProtect
 import os
 from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'tu_super_clave_secreta'
+csrf = CSRFProtect(app)
 
 # Configuración básica
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -25,8 +27,8 @@ posts = [
 ]
 
 categories = [
-    {'id': 1, 'name': 'Playas'},
-    {'id': 2, 'name': 'Montañas'}
+    {'id': 1, 'name': 'Playas', 'created_at': datetime.now(), 'updated_at': datetime.now()},
+    {'id': 2, 'name': 'Montañas', 'created_at': datetime.now(), 'updated_at': datetime.now() }
 ]
 
 def allowed_file(filename):
